@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cloudflare XSS Platform Admin</title>
+    <style>
+        table, td {
+            border-collapse: separate;
+            border: 1px solid #999;
+        }
+    </style>
+</head>
+<body>
+<h2>Cloudflare XSS Platform</h2>
+<a href="https://www.github.com/lyc8503">GitHub 地址</a>
+
+<h4>上传伪装文件</h4>
+<form action="?upload=do" method="post">
+    文件名称: <input type="text" name="name"><br>
+    文件 BASE64 内容: <input type="text" name="base64">
+    <input type="submit" value="保存">
+</form>
+
+<h4>访问记录</h4>
+
+<table>
+    <tr>
+        <th>访问时间</th>
+        <th>访问URL</th>
+        <th>IP</th>
+        <th>IP地区</th>
+        <th>UA</th>
+        <th>Referer</th>
+        <th>POST数据</th>
+    </tr>
+    ###TABLE###
+</table>
+</body>
+</html>

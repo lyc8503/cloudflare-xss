@@ -1,0 +1,7 @@
+name = "cloudflare-xss"
+compatibility_date = "2022-10-29"
+
+kv_namespaces = [
+  { binding = "kv_storage", id = "ee66a0b671264a3f9db1e0f1486b2216", preview_id = "b8a990675d3d4f30b362d0ef4f95c07f" }
+]
+
