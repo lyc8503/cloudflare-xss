@@ -19,8 +19,8 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    mod
 ));
 
 // node_modules/base64-js/index.js
@@ -112,12 +112,12 @@ var require_base64_js = __commonJS({
       if (extraBytes === 1) {
         tmp = uint8[len2 - 1];
         parts.push(
-          lookup[tmp >> 2] + lookup[tmp << 4 & 63] + "=="
+            lookup[tmp >> 2] + lookup[tmp << 4 & 63] + "=="
         );
       } else if (extraBytes === 2) {
         tmp = (uint8[len2 - 2] << 8) + uint8[len2 - 1];
         parts.push(
-          lookup[tmp >> 10] + lookup[tmp >> 4 & 63] + lookup[tmp << 2 & 63] + "="
+            lookup[tmp >> 10] + lookup[tmp >> 4 & 63] + lookup[tmp << 2 & 63] + "="
         );
       }
       return parts.join("");
@@ -189,6 +189,9 @@ async function handleRequest(request, env) {
       });
       for (let item of keys) {
         try {
+          if (item.name.split("_", 3)[0] !== "get" && item.name.split("_", 3)[0] !== "post") {
+            continue;
+          }
           if (item.metadata === void 0) {
             item.metadata = {};
           }

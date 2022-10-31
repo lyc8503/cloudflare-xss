@@ -122,6 +122,10 @@ async function handleRequest(request, env) {
             })
             for (let item of keys) {
                 try {
+                    if (item.name.split("_", 3)[0] !== 'get' && item.name.split("_", 3)[0] !== 'post') {
+                        continue
+                    }
+
                     if (item.metadata === undefined) {
                         item.metadata = {}
                     }
