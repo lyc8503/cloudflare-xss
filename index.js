@@ -130,9 +130,17 @@ async function handleRequest(request, env) {
         } else {
             // Admin page index
             let tableHtml = ''
-            const keys = (await env.kv_storage.list()).keys.sort((a, b) => {
-                return b.name.split("_", 3)[1] * 1 - a.name.split("_", 3)[1] * 1
-            })
+            let all_keys = [];
+            let value = await env.kv_storage.list();
+            all_keys.push.apply(all_keys, value.keys);
+            while (!value.list_complete) {
+                value = await env.kv_storage.list({ cursor: value.cursor });
+                all_keys.push.apply(all_keys, value.keys);
+            }
+
+            const keys = all_keys.sort((a, b) => {
+                return b.name.split("_", 3)[1] * 1 - a.name.split("_", 3)[1] * 1;
+            });
             for (let item of keys) {
                 try {
                     if (item.name.split("_", 3)[0] !== 'get' && item.name.split("_", 3)[0] !== 'post') {
